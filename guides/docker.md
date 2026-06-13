@@ -1,21 +1,70 @@
 # AgentLife — Docker Install Guide
 
+Run AgentLife in a Docker container for a clean, isolated setup.
+
 ## Prerequisites
 
-- Docker installed on any platform
-- Docker Compose (optional, recommended)
+- [Docker](https://docs.docker.com/get-docker/) installed on your system
+- Docker Compose (included with Docker Desktop, install separately on Linux)
 
-## Step 1: Pull Hermes Agent
+## Quick Start with Docker Compose (Recommended)
 
-```bash
-docker pull nousresearch/hermes-agent:latest
+Create a `docker-compose.yml`:
+
+```yaml
+version: "3.9"
+
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: agentlife
+    restart: unless-stopped
+    ports:
+      - "9119:9119"
+    volumes:
+      - ./hermes-config:/home/user/.hermes
+      - ./agentlife-config:/home/user/.hermes/agentlife
+    environment:
+      - HERMES_PROVIDER=openrouter
+      - HERMES_MODEL=deepseek/deepseek-v4-flash
 ```
 
-## Step 2: Run Hermes with AgentLife
+Then:
 
-Coming soon — Docker Compose stack with Hermes + AgentLife pre-configured.
+```bash
+docker compose up -d
+docker compose logs -f
+```
 
-For now, follow the platform-specific guides to install Hermes natively on your host, then add AgentLife on top.
+## Manual Docker Run
+
+```bash
+docker run -d \
+  --name agentlife \
+  --restart unless-stopped \
+  -p 9119:9119 \
+  -v hermes-data:/home/user/.hermes \
+  nousresearch/hermes-agent:latest
+```
+
+## Install AgentLife Inside the Container
+
+```bash
+docker exec -it agentlife bash
+pip install agentlife
+agentlife setup
+exit
+```
+
+## Verify
+
+```bash
+docker exec agentlife agentlife verify
+```
+
+## Dashboard
+
+Access your Hermes dashboard at `http://localhost:9119`
 
 ---
 
