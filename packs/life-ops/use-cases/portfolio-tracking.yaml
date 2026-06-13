@@ -1,0 +1,23 @@
+# Portfolio Tracking — Tier 3 Use Case
+# Account aggregation, net worth snapshots, rebalance alerts
+
+use_case: portfolio-tracking
+persona: life-ops
+version: 0.1.0
+
+cron:
+  - name: daily-net-worth
+    schedule: "0 7 * * 1-5"
+    script: scripts/net-worth.sh
+    
+  - name: rebalance-check
+    schedule: "0 8 * * 1"
+    script: scripts/rebalance-check.sh
+
+config:
+  plaid:
+    enabled: false
+    accounts: []
+  alerts:
+    threshold_drop_pct: 5
+    rebalance_tolerance_pct: 10

@@ -1,0 +1,35 @@
+# Life Ops Pack (Tier 2)
+# Personal finance, scheduling, and life automation
+
+persona: life-ops
+version: 0.1.0
+display_name: "Life Ops"
+description: "Your life, engineered by AI — portfolio, expenses, calendar, subscriptions"
+
+base: base
+
+hermes:
+  model:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+  cron:
+    enabled: true
+
+skills:
+  directories:
+    - skills/life-ops/
+
+use_cases:
+  - portfolio-tracking
+  - expense-tracking
+  - calendar-ops
+  - bill-subscriptions
+
+channels:
+  telegram:
+    enabled: true
+    daily_brief: true
+
+dashboard:
+  enabled: true
+  port: 5050

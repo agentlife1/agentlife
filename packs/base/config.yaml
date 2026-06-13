@@ -1,0 +1,25 @@
+# Base Pack (Tier 1)
+# Shared config and skills inherited by all persona packs
+
+persona: base
+version: 0.1.0
+
+hermes:
+  # Default Hermes config values
+  model:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+  toolsets:
+    - hermes-cli
+
+skills:
+  directories:
+    - skills/base/
+
+cron: []
+
+channel_defaults:
+  telegram:
+    enabled: false
+  local:
+    enabled: true

@@ -1,0 +1,21 @@
+# Calendar Ops — Tier 3 Use Case
+# Time audit, meeting load, focus time suggestions
+
+use_case: calendar-ops
+persona: life-ops
+version: 0.1.0
+
+cron:
+  - name: daily-calendar-brief
+    schedule: "0 6 * * 1-5"
+    script: scripts/calendar-brief.sh
+
+  - name: weekly-time-audit
+    schedule: "0 8 * * 1"
+    script: scripts/time-audit.sh
+
+config:
+  working_hours:
+    start: "09:00"
+    end: "17:00"
+  meeting_overload_threshold: 0.6  # 60% of day in meetings = alert

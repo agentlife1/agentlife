@@ -1,0 +1,22 @@
+# Bill & Subscription Management — Tier 3 Use Case
+# Subscription inventory, renewal alerts, price tracking
+
+use_case: bill-subscriptions
+persona: life-ops
+version: 0.1.0
+
+cron:
+  - name: renewal-check
+    schedule: "0 8 * * *"
+    script: scripts/renewal-check.sh
+
+  - name: monthly-subscription-report
+    schedule: "0 9 1 * *"
+    script: scripts/subscription-report.sh
+
+config:
+  alert_lead_days: 14
+  subscriptions: []
+  providers:
+    wallos: false
+    manual: true
