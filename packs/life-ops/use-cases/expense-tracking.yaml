@@ -8,11 +8,11 @@ version: 0.1.0
 cron:
   - name: weekly-spending-digest
     schedule: "0 9 * * 1"
-    script: scripts/spending-digest.sh
+    script: packs/life-ops/scripts/spending-digest.sh
     
   - name: monthly-budget-report
     schedule: "0 10 1 * *"
-    script: scripts/budget-report.sh
+    script: packs/life-ops/scripts/budget-report.sh
 
 config:
   budgets:

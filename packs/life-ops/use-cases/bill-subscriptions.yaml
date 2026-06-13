@@ -8,11 +8,11 @@ version: 0.1.0
 cron:
   - name: renewal-check
     schedule: "0 8 * * *"
-    script: scripts/renewal-check.sh
+    script: packs/life-ops/scripts/renewal-check.sh
 
   - name: monthly-subscription-report
     schedule: "0 9 1 * *"
-    script: scripts/subscription-report.sh
+    script: packs/life-ops/scripts/subscription-report.sh
 
 config:
   alert_lead_days: 14

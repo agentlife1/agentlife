@@ -25,12 +25,12 @@ hermes:
 cron:
   - name: daily-system-health
     schedule: "0 6 * * *"
-    script: scripts/hermes-connect.sh
+    script: packs/base/scripts/hermes-connect.sh
     description: "Daily Hermes connectivity and system health check"
 
   - name: pack-update-check
     schedule: "0 5 * * 1"
-    script: scripts/update-check.sh
+    script: packs/base/scripts/update-check.sh
     description: "Weekly check for new persona pack versions"
 
 skills:

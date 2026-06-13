@@ -19,6 +19,12 @@ skills:
   directories:
     - skills/life-ops/
 
+cron:
+  - name: daily-brief
+    schedule: "30 6 * * 1-5"
+    script: packs/life-ops/scripts/daily-brief.sh
+    description: "Morning brief — net worth, spending, calendar, renewals"
+
 use_cases:
   - portfolio-tracking
   - expense-tracking
@@ -29,6 +35,8 @@ channels:
   telegram:
     enabled: true
     daily_brief: true
+  local:
+    enabled: true
 
 dashboard:
   enabled: true
