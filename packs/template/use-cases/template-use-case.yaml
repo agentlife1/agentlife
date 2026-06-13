@@ -1,0 +1,12 @@
+# Template use case for new persona packs
+use_case: <use-case-id>
+persona: <persona-name>
+version: 0.1.0
+
+cron:
+  - name: template-cron
+    schedule: "0 9 * * *"
+    script: packs/<persona-name>/scripts/template-job.sh
+
+config:
+  example_setting: "default_value"

@@ -55,6 +55,10 @@ def fail(text: str):
     print(f"  {c(CROSS, RED)} {text}")
 
 
+def warn(text: str):
+    print(f"  {c('!', YELLOW)} {text}")
+
+
 def prompt(text: str) -> str:
     return input(f"  {c('>>', MAGENTA)} {text}: ").strip()
 
@@ -158,6 +162,26 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
     # Step 5: Generate config
     header("Generating Config")
+    
+    # Check for conflicts when multiple personas selected
+    if len(chosen_personas) > 1:
+        info("Multiple personas selected — checking for conflicts...")
+        # Load all configs and check for overlapping keys
+        conflicts = []
+        for i, p1 in enumerate(chosen_personas):
+            for p2 in chosen_personas[i+1:]:
+                common_keys = set(p1.config.get("hermes", {}).keys()) & set(p2.config.get("hermes", {}).keys())
+                if common_keys:
+                    for key in common_keys:
+                        if p1.config["hermes"].get(key) != p2.config["hermes"].get(key):
+                            conflicts.append((p1.name, p2.name, key))
+        if conflicts:
+            warn(f"Found {len(conflicts)} config conflict(s):")
+            for p1, p2, key in conflicts:
+                info(f"  {p1}/{p2} differ on '{key}' — {p2} wins (last selected)")
+        else:
+            ok("No conflicts detected")
+    
     merged = generate_hermes_config(
         [p.name for p in chosen_personas],
         chosen_use_cases,
@@ -197,29 +221,80 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
 def cmd_update(args: argparse.Namespace) -> int:
     """Pull latest persona packs from GitHub."""
-    header("AgentLife Update")
-    git_dir = FRAMEWORK_DIR / ".git"
-    if not git_dir.exists():
-        fail("Framework not in a git repo — can't auto-update")
-        info("Clone the repo to get updates:")
-        info("  git clone https://github.com/agentlife/agentlife.git")
-        return 1
-
     import subprocess
 
+    header("AgentLife Update")
+
+    git_dir = FRAMEWORK_DIR / ".git"
+    if not git_dir.exists():
+        fail("Framework not in a git repo")
+        info("Clone the repo to get updates:")
+        info("  git clone https://github.com/agentlife/agentlife.git ~/agentlife/framework")
+        return 1
+
+    # Check for local changes that might be overwritten
+    status = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=FRAMEWORK_DIR,
+        capture_output=True,
+        text=True,
+    )
+    if status.stdout.strip():
+        warn("You have uncommitted changes:")
+        for line in status.stdout.strip().split("\n"):
+            info(f"  {line.strip()}")
+        stash = confirm("Stash changes and continue?", default=False)
+        if stash:
+            subprocess.run(["git", "stash"], cwd=FRAMEWORK_DIR)
+            ok("Changes stashed")
+        else:
+            info("Update cancelled. Commit or stash your changes first.")
+            return 1
+
+    # Check remote connectivity
+    remote_check = subprocess.run(
+        ["git", "ls-remote", "--exit-code", "origin"],
+        cwd=FRAMEWORK_DIR,
+        capture_output=True,
+        text=True,
+    )
+    if remote_check.returncode != 0:
+        fail("Cannot reach GitHub — check your network connection")
+        return 1
+
+    # Fetch and pull
     result = subprocess.run(
         ["git", "pull", "--ff-only"],
         cwd=FRAMEWORK_DIR,
         capture_output=True,
         text=True,
     )
+
     if result.returncode == 0:
-        ok("Up to date" if "Already up to date" in result.stdout else "Updated")
-        if result.stdout.strip():
-            info(result.stdout.strip())
+        if "Already up to date" in result.stdout:
+            ok("Framework is up to date")
+        else:
+            ok("Framework updated")
+            if result.stdout.strip():
+                info(result.stdout.strip())
+            # Re-run config validation after update
+            validator = FRAMEWORK_DIR / "packs" / "base" / "scripts" / "config-validate.py"
+            if validator.exists():
+                v_result = subprocess.run(
+                    [sys.executable, str(validator)],
+                    cwd=FRAMEWORK_DIR,
+                    capture_output=True,
+                    text=True,
+                )
+                if v_result.returncode == 0:
+                    ok("Configs valid after update")
+                else:
+                    fail("Config validation failed after update!")
+                    info("Run 'python3 packs/base/scripts/config-validate.py' to see details")
         return 0
     else:
         fail(f"Update failed: {result.stderr.strip()}")
+        info("Try: cd ~/agentlife/framework && git pull")
         return 1
 
 
@@ -264,6 +339,32 @@ def cmd_verify(args: argparse.Namespace) -> int:
             for line in result.stdout.strip().split("\n"):
                 if "❌" in line or "•" in line:
                     print(f"    {line.strip()}")
+            # Error recovery suggestions
+            info("Fix errors and re-run: python3 packs/base/scripts/config-validate.py")
+
+    # Check cron jobs are scheduled
+    if config_path.exists():
+        try:
+            cfg = json.loads(config_path.read_text())
+            cron_count = len(cfg.get("cron", []))
+            if cron_count > 0:
+                ok(f"{cron_count} cron jobs configured")
+            else:
+                warn("No cron jobs configured — select use cases to enable them")
+        except (json.JSONDecodeError, Exception):
+            warn("Could not read AgentLife config for cron check")
+
+    # Print recovery guide if failures
+    if not all_pass:
+        print(f"\n{c(BOLD + 'Recovery Guide', YELLOW)}")
+        fail("Some checks failed. Here's how to fix:")
+        if not shutil.which("hermes"):
+            info("Install Hermes: pipx install hermes-agent")
+        if not Path.home().joinpath(".hermes/config.yaml").exists():
+            info("Init config: hermes init")
+        if not config_path.exists():
+            info("Setup: agentlife setup")
+        print()
 
     return 0 if all_pass else 1
 
