@@ -1,25 +1,59 @@
 # Base Pack (Tier 1)
-# Shared config and skills inherited by all persona packs
+# Shared config and skills inherited by all persona packs.
+# Every AgentLife installation starts here.
 
 persona: base
 version: 0.1.0
+display_name: "AgentLife Base"
+description: "Core framework — shared config, Hermes connectivity, health checks"
 
 hermes:
-  # Default Hermes config values
+  # Default Hermes config values for new installs
   model:
     provider: openrouter
     model: deepseek/deepseek-v4-flash
+  agent:
+    max_turns: 90
+    task_completion_guidance: true
   toolsets:
     - hermes-cli
+  display:
+    language: en
+    streaming: true
+
+# Base cron — health checks run regardless of persona
+cron:
+  - name: daily-system-health
+    schedule: "0 6 * * *"
+    script: scripts/hermes-connect.sh
+    description: "Daily Hermes connectivity and system health check"
+
+  - name: pack-update-check
+    schedule: "0 5 * * 1"
+    script: scripts/update-check.sh
+    description: "Weekly check for new persona pack versions"
 
 skills:
   directories:
     - skills/base/
 
-cron: []
-
-channel_defaults:
-  telegram:
-    enabled: false
+# Channel defaults — inherited and overridable by persona packs
+channels:
   local:
     enabled: true
+    output_dir: ~/.hermes/agentlife/
+  telegram:
+    enabled: false
+  email:
+    enabled: false
+
+# Installation metadata
+install:
+  min_python: "3.10"
+  supported_platforms:
+    - linux
+    - macos
+    - raspberry-pi
+    - vps
+    - windows-wsl
+  hermex_min_version: "0.1.0"
