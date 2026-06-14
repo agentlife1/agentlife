@@ -1,0 +1,47 @@
+# =============================================================================
+# MCP Server: time
+# =============================================================================
+# What it does:
+#   Exposes a small set of time/date utilities to the agent — most importantly
+#   `get_current_time` (which accepts a timezone) and `convert_time` (which
+#   converts a time between timezones). Useful whenever the agent needs to
+#   reason about "what time is it in Tokyo?" or "is 9am ET before my 2pm
+#   meeting in Berlin?" without hallucinating.
+#
+#   Tools the agent will see (auto-prefixed by Hermes):
+#     - mcp_time_get_current_time
+#     - mcp_time_convert_time
+#
+# Prerequisites:
+#   - Python runtime with `uvx` (recommended) OR `pip` available.
+#     Install uv (which provides uvx):
+#       curl -LsSf https://astral.sh/uv/install.sh | sh
+#   - The MCP Python SDK is already required by Hermes itself:
+#       pip install mcp
+#
+# API keys:
+#   None. The time server is fully local and has no external dependencies.
+#
+# Source:
+#   Official reference server in the modelcontextprotocol/servers repo.
+#   PyPI package: mcp-server-time
+#
+# How to use:
+#   Copy the YAML block below (everything from `time:` onward) and paste it
+#   under your existing `mcp_servers:` key in `~/.hermes/config.yaml`,
+#   indenting every line by 2 more spaces. See ../mcp/README.md for details.
+# =============================================================================
+
+time:
+  # The executable Hermes will spawn. `uvx` is a zero-install runner for
+  # Python packages — it will fetch and cache mcp-server-time on first use.
+  command: "uvx"
+
+  # Arguments passed to `uvx`. The package name alone is enough; uvx will
+  # resolve it from PyPI. No `pip install` step required.
+  args:
+    - "mcp-server-time"
+
+  # Optional: per-call timeout in seconds. Bump this if you find the agent
+  # timing out on slow machines. 60s is plenty for a local time lookup.
+  # timeout: 60

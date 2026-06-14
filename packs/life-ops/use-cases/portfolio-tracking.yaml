@@ -9,7 +9,7 @@ cron:
   - name: daily-net-worth
     schedule: "0 7 * * 1-5"
     script: packs/life-ops/scripts/net-worth.sh
-    
+
   - name: rebalance-check
     schedule: "0 8 * * 1"
     script: packs/life-ops/scripts/rebalance-check.sh
@@ -21,3 +21,68 @@ config:
   alerts:
     threshold_drop_pct: 5
     rebalance_tolerance_pct: 10
+
+# -----------------------------------------------------------------------------
+# MCP (Model Context Protocol) integration
+# -----------------------------------------------------------------------------
+# Without MCP: this use case relies on the shell scripts above plus manual
+# balance entry or CSV imports.
+#
+# With MCP: the agent gains live, structured access to market data, brokerage
+# accounts, and your historical portfolio DB — enabling real-time net worth,
+# automatic rebalance detection, and news context for big moves.
+#
+# To enable: copy the server config(s) you want from packs/base/mcp/ into
+# ~/.hermes/config.yaml under `mcp_servers:`, then flip `enabled: true` below.
+mcp:
+  # Master toggle. When false, the legacy shell scripts and CSV/Manual mode
+  # are used regardless of what's installed.
+  enabled: false
+
+  # MCP servers that can power this use case. You don't need to enable all
+  # of them — pick the one(s) that match your data sources. The agent will
+  # use whichever is reachable; the rest are simply ignored.
+  alternatives:
+    - name: yahoo_finance
+      description: "Real-time stock, ETF, mutual fund, index, and crypto quotes"
+      use_case: "Pulls current prices and historical series so net worth, day P&L, and asset allocation compute automatically"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-yahoo-finance"]
+      needs_api_key: false
+
+    - name: plaid
+      description: "Bank, brokerage, and retirement account aggregation"
+      use_case: "Replaces manual balance entry — auto-fetches holdings and cash balances from linked institutions"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-plaid"]
+        env:
+          PLAID_CLIENT_ID: "${PLAID_CLIENT_ID}"
+          PLAID_SECRET: "${PLAID_SECRET}"
+      needs_api_key: true   # Plaid dashboard: https://dashboard.plaid.com/
+
+    - name: sqlite
+      description: "Local SQLite database of historical net-worth snapshots"
+      use_case: "Stores daily balances and allocation history so trends, time-weighted returns, and rebalance drift can be computed over months/years"
+      config:
+        command: "uvx"
+        args: ["mcp-server-sqlite", "--db", "/home/YOU/agentlife/portfolio.db"]
+      needs_api_key: false
+      note: "Change /home/YOU/agentlife to wherever you want the DB to live."
+
+    - name: web_search
+      description: "Live web search (Tavily) for market news and fundamentals"
+      use_case: "Surfaces earnings announcements, news headlines, and explanations for unusual daily moves so the brief can include context"
+      config:
+        command: "npx"
+        args: ["-y", "tavily-mcp"]
+        env:
+          TAVILY_API_KEY: "${TAVILY_API_KEY}"
+      needs_api_key: true   # https://tavily.com/ — free tier is plenty for personal use
+
+  # If MCP is unavailable (server down, missing key, network issue), the
+  # use case falls back to this mode so the morning brief still ships.
+  #   csv_import    — read balances from a CSV you drop in the data dir
+  #   manual_entry  — you paste numbers when prompted
+  fallback_mode: csv_import

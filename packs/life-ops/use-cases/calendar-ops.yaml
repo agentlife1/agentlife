@@ -19,3 +19,67 @@ config:
     start: "09:00"
     end: "17:00"
   meeting_overload_threshold: 0.6  # 60% of day in meetings = alert
+
+# -----------------------------------------------------------------------------
+# MCP (Model Context Protocol) integration
+# -----------------------------------------------------------------------------
+# Without MCP: this use case relies on manual event entry or ICS/CSV imports.
+#
+# With MCP: the agent can read your real calendar in real time — listing
+# today's events, computing meeting load, and finding focus-time gaps
+# automatically, plus handle cross-timezone meetings correctly.
+#
+# To enable: copy server config(s) from packs/base/mcp/ into
+# ~/.hermes/config.yaml under `mcp_servers:`, then flip `enabled: true`.
+mcp:
+  # Master toggle. When false, the legacy shell scripts and ICS/manual mode
+  # are used.
+  enabled: false
+
+  alternatives:
+    - name: google_calendar
+      description: "Google Calendar via the official API"
+      use_case: "Lists today's events across all your Google calendars, computes meeting load, and finds focus-time gaps"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-google-calendar"]
+        env:
+          GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+          GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+          GOOGLE_REFRESH_TOKEN: "${GOOGLE_REFRESH_TOKEN}"
+      needs_api_key: true   # OAuth app: https://console.cloud.google.com/
+
+    - name: caldav
+      description: "CalDAV (Fastmail, iCloud, Nextcloud, Radicale, SOGo, etc.)"
+      use_case: "Best fit for self-hosted or privacy-focused setups — reads any standards-compliant CalDAV calendar"
+      config:
+        command: "uvx"
+        args: ["mcp-server-caldav"]
+        env:
+          CALDAV_URL: "${CALDAV_URL}"
+          CALDAV_USERNAME: "${CALDAV_USERNAME}"
+          CALDAV_PASSWORD: "${CALDAV_PASSWORD}"
+      needs_api_key: false
+      note: "Use an app-specific password where the provider supports one (Fastmail, iCloud, etc.)."
+
+    - name: time
+      description: "Timezone conversion and current-time utilities"
+      use_case: "Resolves cross-timezone meetings correctly when you travel, work remote, or collaborate across regions"
+      config:
+        command: "uvx"
+        args: ["mcp-server-time"]
+      needs_api_key: false
+
+    - name: sqlite
+      description: "Local historical meeting database"
+      use_case: "Stores past events so the weekly time-audit can show trends over months (e.g. 'you spent 12% more time in 1:1s this quarter')"
+      config:
+        command: "uvx"
+        args: ["mcp-server-sqlite", "--db", "/home/YOU/agentlife/calendar.db"]
+      needs_api_key: false
+      note: "Change /home/YOU/agentlife to wherever you want the DB to live."
+
+  # Fallback when no MCP server is reachable:
+  #   ics_import   — point at an .ics feed URL (Google/Outlook both expose one)
+  #   manual_entry — you paste today's events when prompted
+  fallback_mode: ics_import

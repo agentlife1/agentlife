@@ -1,0 +1,65 @@
+# =============================================================================
+# MCP Server: web-search (Tavily)
+# =============================================================================
+# What it does:
+#   Gives the agent the ability to search the live web and (optionally)
+#   extract clean content from specific URLs. Built on the Tavily Search
+#   API, which is designed for LLM/RAG use cases — results come back with
+#   short, model-friendly snippets plus source URLs.
+#
+#   Tools the agent will see (auto-prefixed by Hermes):
+#     - mcp_web_search_tavily_search        # live web search
+#     - mcp_web_search_tavily_extract       # pull clean text from a URL
+#     - mcp_web_search_tavily_crawl         # walk a whole site
+#     - mcp_web_search_tavily_map           # list a site's pages
+#
+#   Other popular web-search MCP servers you could swap in here:
+#     - Brave Search: @brave/brave-search-mcp-server   (env: BRAVE_API_KEY)
+#     - Exa (semantic): exa-mcp-server                 (env: EXA_API_KEY)
+#     - DuckDuckGo (no key): ddg-mcp-server
+#
+# Prerequisites:
+#   - Node.js 18+ installed (provides `npx`).
+#   - The MCP Python SDK for Hermes itself:
+#       pip install mcp
+#
+# API keys:
+#   You need a Tavily API key. Get one at:
+#     https://tavily.com/  →  Sign up  →  API Keys
+#   Free tier: ~1,000 searches/month — plenty for personal agent use.
+#   Set the key in the `env:` block below. For better security, reference
+#   an environment variable instead of hard-coding it:
+#     env:
+#       TAVILY_API_KEY: "${TAVILY_API_KEY}"
+#   and export TAVILY_API_KEY in your shell profile.
+#
+# Source:
+#   https://github.com/tavily-ai/tavily-mcp
+#   npm package: tavily-mcp
+#
+# How to use:
+#   Copy the YAML block below and paste it under `mcp_servers:` in
+#   `~/.hermes/config.yaml`, indenting every line by 2 more spaces.
+#   See ../mcp/README.md for details.
+# =============================================================================
+
+web-search:
+  # The executable Hermes will spawn.
+  command: "npx"
+
+  # `-y` auto-confirms the npm install prompt on first run.
+  args:
+    - "-y"
+    - "tavily-mcp"
+
+  # Environment variables passed through to the server process. Hermes
+  # does NOT pass your full shell environment to MCP servers — you must
+  # explicitly list every key the server needs here.
+  env:
+    # Replace with your real key, OR use ${TAVILY_API_KEY} to read it
+    # from your shell environment (recommended for shared machines).
+    TAVILY_API_KEY: "tvly-REPLACE_ME_WITH_YOUR_REAL_KEY"
+
+  # Optional: per-call timeout in seconds. Web searches can be slow under
+  # load; 90s is a reasonable starting point.
+  # timeout: 90

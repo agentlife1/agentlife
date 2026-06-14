@@ -41,3 +41,124 @@ channels:
 dashboard:
   enabled: true
   port: 5050
+
+# -----------------------------------------------------------------------------
+# MCP (Model Context Protocol) — recommended server set for this persona
+# -----------------------------------------------------------------------------
+# Life Ops is the most MCP-hungry of the AgentLife personas: portfolio,
+# expenses, calendar, and subscriptions all benefit dramatically from live,
+# structured tool access. This block lists the servers worth enabling if
+# you want the full experience.
+#
+# How to use:
+#   1. Copy any/all of the server configs you want from `packs/base/mcp/`
+#      (or from each use case's `mcp.alternatives` list) into your
+#      `~/.hermes/config.yaml` under `mcp_servers:`.
+#   2. Flip the corresponding use case's `mcp.enabled` to true in
+#      `packs/life-ops/use-cases/<name>.yaml`.
+#   3. Restart Hermes — MCP discovery happens at startup.
+#
+# Servers are grouped by what they unlock. Enable at least the "Universal"
+# group; the others are optional and keyed to specific use cases.
+mcp:
+  # Master switch for the persona. When false, each use case's own
+  # `mcp.enabled` decides locally. When true, Life Ops assumes you've
+  # installed the universal servers below.
+  enabled: false
+
+  recommended_servers:
+    # ---- Universal — enable for any Life Ops install ----
+    - name: time
+      purpose: "Timezone-correct briefings and cross-region scheduling"
+      needs_api_key: false
+      use_cases: [calendar-ops, daily-brief]
+
+    - name: filesystem
+      purpose: "Read/write the local data directory (CSVs, reports, configs)"
+      needs_api_key: false
+      use_cases: [portfolio-tracking, expense-tracking, calendar-ops, bill-subscriptions]
+
+    # ---- Portfolio tracking ----
+    - name: yahoo_finance
+      purpose: "Real-time quotes for stocks, ETFs, mutual funds, crypto"
+      needs_api_key: false
+      use_cases: [portfolio-tracking]
+
+    - name: plaid
+      purpose: "Bank, brokerage, and credit-card account aggregation"
+      needs_api_key: true
+      use_cases: [portfolio-tracking, expense-tracking]
+
+    # ---- Expense tracking ----
+    - name: actual_budget
+      purpose: "Two-way sync with self-hosted Actual Budget"
+      needs_api_key: false
+      use_cases: [expense-tracking]
+
+    - name: puppeteer
+      purpose: "Scrape portals and PDFs that have no API"
+      needs_api_key: false
+      use_cases: [expense-tracking, bill-subscriptions]
+
+    # ---- Calendar ops ----
+    - name: google_calendar
+      purpose: "Read Google Calendar events for the daily brief"
+      needs_api_key: true
+      use_cases: [calendar-ops]
+
+    - name: caldav
+      purpose: "Read CalDAV calendars (Fastmail, iCloud, Nextcloud, Radicale)"
+      needs_api_key: false
+      use_cases: [calendar-ops]
+
+    # ---- Subscriptions ----
+    - name: gmail
+      purpose: "Discover subscriptions from receipts and renewal emails"
+      needs_api_key: true
+      use_cases: [bill-subscriptions]
+
+    - name: web_search
+      purpose: "Market news, public pricing, and vendor-website research"
+      needs_api_key: true
+      use_cases: [portfolio-tracking, bill-subscriptions]
+
+    # ---- Shared infrastructure ----
+    - name: sqlite
+      purpose: "Local history DBs for portfolio, expenses, calendar, and subscriptions"
+      needs_api_key: false
+      use_cases: [portfolio-tracking, expense-tracking, calendar-ops, bill-subscriptions]
+
+  # Defaults applied to every use case's MCP config unless overridden
+  # in the use case YAML itself.
+  defaults:
+    # What to do when no MCP server is reachable for a use case.
+    # Use cases may override this with csv_import, manual, wallos, etc.
+    fallback_mode: manual
+
+    # Where to look for API keys referenced as ${VAR_NAME} in server configs.
+    #   env      — read from the shell environment (recommended)
+    #   keyring  — read from the OS keyring (macOS Keychain, Linux Secret Service)
+    #   config   — read directly from the YAML (less secure, fine for solo use)
+    credential_storage: env
+
+  # Quick-start: copy this entire `mcp_servers:` block into
+  # ~/.hermes/config.yaml to enable the universal servers. Then add the
+  # use-case-specific ones from the list above as you need them.
+  quick_start:
+    note: "Adjust the path in `filesystem` args to a real directory you own."
+    snippet: |
+      mcp_servers:
+        time:
+          command: "uvx"
+          args: ["mcp-server-time"]
+
+        filesystem:
+          command: "npx"
+          args:
+            - "-y"
+            - "@modelcontextprotocol/server-filesystem"
+            - "/home/YOU/agentlife/data"
+
+        sqlite:
+          command: "uvx"
+          args: ["mcp-server-sqlite", "--db", "/home/YOU/agentlife/agentlife.db"]

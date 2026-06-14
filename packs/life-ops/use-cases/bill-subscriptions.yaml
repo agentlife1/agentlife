@@ -20,3 +20,66 @@ config:
   providers:
     wallos: false
     manual: true
+
+# -----------------------------------------------------------------------------
+# MCP (Model Context Protocol) integration
+# -----------------------------------------------------------------------------
+# Without MCP: this use case relies on a manually maintained list (or a
+# self-hosted Wallos instance) plus a CSV of charges.
+#
+# With MCP: the agent can discover subscriptions automatically (inbox
+# receipts, browser scraping), check vendor sites for price changes, and
+# maintain a searchable local history of every recurring charge.
+#
+# To enable: copy server config(s) from packs/base/mcp/ into
+# ~/.hermes/config.yaml under `mcp_servers:`, then flip `enabled: true`.
+mcp:
+  # Master toggle. When false, the legacy shell scripts and the provider
+  # configured in `config.providers` are used.
+  enabled: false
+
+  alternatives:
+    - name: gmail
+      description: "Gmail API for receipt/renewal scanning"
+      use_case: "Searches your inbox for receipts, renewal confirmations, and free-trial-ending emails — auto-discovers subscriptions you'd otherwise forget"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-gmail"]
+        env:
+          GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+          GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+          GOOGLE_REFRESH_TOKEN: "${GOOGLE_REFRESH_TOKEN}"
+      needs_api_key: true   # OAuth app: https://console.cloud.google.com/
+
+    - name: puppeteer
+      description: "Headless browser automation"
+      use_case: "Logs into subscription services, checks renewal dates and current pricing, detects price increases before they hit your statement"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-puppeteer"]
+      needs_api_key: false
+      note: "First run downloads a Chromium bundle (~170MB). Linux servers may need Chrome's system libraries — see packs/base/mcp/puppeteer.yaml."
+
+    - name: sqlite
+      description: "Local subscription database"
+      use_case: "Persistent record of every subscription, its renewal date, full price history, category, and notes — powers the monthly report and trend alerts"
+      config:
+        command: "uvx"
+        args: ["mcp-server-sqlite", "--db", "/home/YOU/agentlife/subscriptions.db"]
+      needs_api_key: false
+      note: "Change /home/YOU/agentlife to wherever you want the DB to live."
+
+    - name: web_search
+      description: "Live web search (Tavily)"
+      use_case: "Looks up current public pricing to compare against what you're being charged — useful for catching 'introductory price ended' traps"
+      config:
+        command: "npx"
+        args: ["-y", "tavily-mcp"]
+        env:
+          TAVILY_API_KEY: "${TAVILY_API_KEY}"
+      needs_api_key: true   # https://tavily.com/ — free tier is plenty for personal use
+
+  # Fallback when no MCP server is reachable:
+  #   manual  — you maintain the subscription list in config.yaml
+  #   wallos  — read from a self-hosted Wallos instance
+  fallback_mode: manual

@@ -1,0 +1,69 @@
+# =============================================================================
+# MCP Server: filesystem
+# =============================================================================
+# What it does:
+#   Gives the agent a sandboxed set of file tools (read_file, write_file,
+#   list_directory, search_files, move_file, etc.) restricted to one or
+#   more directories you whitelist on the command line. The server will
+#   REFUSE any path outside those roots — this is a security feature, not
+#   a bug, so choose your allowed paths carefully.
+#
+#   Tools the agent will see (auto-prefixed by Hermes):
+#     - mcp_filesystem_read_file
+#     - mcp_filesystem_write_file
+#     - mcp_filesystem_list_directory
+#     - mcp_filesystem_search_files
+#     - mcp_filesystem_create_directory
+#     - mcp_filesystem_move_file
+#     - (and more)
+#
+# Prerequisites:
+#   - Node.js 18+ installed (provides `npx`).
+#       # Linux/macOS: use your package manager or nvm
+#       curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+#       sudo apt install -y nodejs
+#   - The MCP Python SDK for Hermes itself:
+#       pip install mcp
+#
+# API keys:
+#   None.
+#
+# Source:
+#   Official reference server in the modelcontextprotocol/servers repo.
+#   npm package: @modelcontextprotocol/server-filesystem
+#
+# CUSTOMIZE BEFORE USING:
+#   Replace the placeholder path(s) in `args:` below with the directory or
+#   directories you want the agent to be able to read/write. You can list
+#   multiple paths — the server will allow access to all of them.
+#
+#   Example: allow access to your AgentLife data + a scratch directory:
+#     args:
+#       - "-y"
+#       - "@modelcontextprotocol/server-filesystem"
+#       - "/home/YOU/agentlife"
+#       - "/tmp/agent-scratch"
+#
+#   ⚠️  Do NOT give it access to /, your home root, or anything containing
+#       secrets (SSH keys, .aws/, .gnupg/) unless you understand the risk.
+#
+# How to use:
+#   Copy the YAML block below and paste it under `mcp_servers:` in
+#   `~/.hermes/config.yaml`, indenting every line by 2 more spaces.
+#   See ../mcp/README.md for details.
+# =============================================================================
+
+filesystem:
+  # The executable Hermes will spawn.
+  command: "npx"
+
+  # `-y` auto-confirms the npm install prompt on first run.
+  # The remaining args are: the package name, then the allowed root paths.
+  # ⚠️  CHANGE THE PATH BELOW to a real directory on your machine.
+  args:
+    - "-y"
+    - "@modelcontextprotocol/server-filesystem"
+    - "/home/YOU/PATH/TO/ALLOWED/DIRECTORY"
+
+  # Optional: bump timeout for large file operations.
+  # timeout: 120

@@ -44,3 +44,53 @@ Show me my total monthly committed spend.
 Alert me when any subscription price changes.
 List all my subscriptions by category.
 ```
+
+## MCP Integration
+
+The subscription use case is where MCP turns a chore into a hands-off
+system. Without MCP, you maintain a list and hope you remember to
+update it; with MCP, the agent can discover subscriptions from your
+inbox, check vendor sites for price changes, and keep a searchable
+history automatically.
+
+### Recommended MCP servers
+
+| Server | What it unlocks | Needs an API key? |
+|--------|-----------------|-------------------|
+| **gmail** | Scan your inbox for receipts, renewal confirmations, and free-trial-ending emails to auto-discover subscriptions | Yes (Google OAuth) |
+| **puppeteer** | Log into vendor portals, check renewal dates, detect price changes before they hit your statement | No |
+| **sqlite** | Local DB of every subscription, its renewal date, full price history, category, and notes | No |
+| **web_search** | Look up current public pricing to compare against what you're being charged | Yes (Tavily) |
+| **time** | Correct renewal-date math across timezones and billing cycles | No |
+
+### How the agent uses MCP for this skill
+
+- **Subscription Inventory** — instead of asking you to enumerate
+  every subscription, the agent scans Gmail for receipts and
+  free-trial emails, writes each one to the SQLite DB with the
+  amount and trial/renewal date, and prompts you only when it
+  finds something ambiguous.
+- **Renewal Alerts** — pulls the upcoming-renewals query from the
+  live SQLite DB, so a cancellation you did yesterday is reflected
+  in tomorrow's alert — not next month.
+- **Price Increase Detection** — uses Puppeteer to log into vendor
+  sites (or web_search to check public pricing) and compares
+  against the SQLite price history. If Netflix raised you from
+  $15.99 to $17.99, the next renewal-check fires an alert *with
+  the dollar amount and the date of the change*.
+- **Monthly Committed Spend** — sums the SQLite DB on demand and
+  breaks it down by category, including subscriptions you forgot
+  you were paying for.
+
+### How to enable
+
+1. Copy server configs from `packs/base/mcp/` (or the snippets in
+   `packs/life-ops/use-cases/bill-subscriptions.yaml` under
+   `mcp.alternatives`) into `~/.hermes/config.yaml` under
+   `mcp_servers:`.
+2. Set `mcp.enabled: true` in
+   `packs/life-ops/use-cases/bill-subscriptions.yaml`.
+3. Restart Hermes and verify with `hermes tools list | grep mcp_`.
+
+For the full conceptual overview and security notes, see
+[`guides/mcp-integration.md`](../../../../guides/mcp-integration.md).

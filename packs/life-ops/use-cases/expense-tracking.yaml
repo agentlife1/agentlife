@@ -9,7 +9,7 @@ cron:
   - name: weekly-spending-digest
     schedule: "0 9 * * 1"
     script: packs/life-ops/scripts/spending-digest.sh
-    
+
   - name: monthly-budget-report
     schedule: "0 10 1 * *"
     script: packs/life-ops/scripts/budget-report.sh
@@ -20,3 +20,69 @@ config:
     categories: []
   sync:
     provider: ""  # actualbudget | firefly-iii | manual
+
+# -----------------------------------------------------------------------------
+# MCP (Model Context Protocol) integration
+# -----------------------------------------------------------------------------
+# Without MCP: this use case relies on manual entry, CSV uploads, or
+# integration with a self-hosted Actual Budget / Firefly III server.
+#
+# With MCP: the agent can pull transactions directly from your bank/credit
+# card APIs, scrape portal statements, and write to a local DB that powers
+# the digest and budget reports — fully end-to-end.
+#
+# To enable: copy server config(s) from packs/base/mcp/ (or the snippets
+# below) into ~/.hermes/config.yaml under `mcp_servers:`, then flip
+# `enabled: true`.
+mcp:
+  # Master toggle. When false, the legacy shell scripts and the provider
+  # configured in `config.sync` are used.
+  enabled: false
+
+  alternatives:
+    - name: plaid
+      description: "Bank, credit card, and investment transaction history"
+      use_case: "Auto-imports categorized transactions nightly; eliminates CSV uploads and keeps the digest fresh"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-plaid"]
+        env:
+          PLAID_CLIENT_ID: "${PLAID_CLIENT_ID}"
+          PLAID_SECRET: "${PLAID_SECRET}"
+      needs_api_key: true   # https://dashboard.plaid.com/
+
+    - name: actual_budget
+      description: "Self-hosted Actual Budget sync"
+      use_case: "Two-way sync with Actual Budget — keeps transactions AND budget targets aligned so Actual remains the source of truth"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-actual-budget"]
+        env:
+          ACTUAL_SERVER_URL: "${ACTUAL_SERVER_URL}"
+          ACTUAL_PASSWORD: "${ACTUAL_PASSWORD}"
+      needs_api_key: false
+      note: "ACTUAL_SERVER_URL is your self-hosted Actual server, e.g. http://localhost:5006"
+
+    - name: puppeteer
+      description: "Headless browser automation"
+      use_case: "Logs into portals that have no API (small banks, Amazon orders, Venmo, etc.) and extracts transactions the agent can categorize"
+      config:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-puppeteer"]
+      needs_api_key: false
+      note: "First run downloads a Chromium bundle (~170MB). Linux servers may need Chrome's system libraries — see packs/base/mcp/puppeteer.yaml."
+
+    - name: sqlite
+      description: "Local transactions, rules, and budget database"
+      use_case: "Stores the full transaction history, category rules, and monthly budget targets that power the digest and budget report"
+      config:
+        command: "uvx"
+        args: ["mcp-server-sqlite", "--db", "/home/YOU/agentlife/expenses.db"]
+      needs_api_key: false
+      note: "Change /home/YOU/agentlife to wherever you want the DB to live."
+
+  # Fallback when no MCP server is reachable:
+  #   csv_import     — read transactions from a CSV you drop in the data dir
+  #   actual_budget  — read directly from your Actual Budget server
+  #   manual         — agent asks you for totals on demand
+  fallback_mode: csv_import

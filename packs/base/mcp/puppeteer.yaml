@@ -1,0 +1,73 @@
+# =============================================================================
+# MCP Server: puppeteer (headless browser)
+# =============================================================================
+# What it does:
+#   Wraps Puppeteer (a headless Chromium automation library) as MCP tools.
+#   The agent can navigate to URLs, click elements, fill forms, run
+#   JavaScript on the page, and take screenshots. Use it for scraping
+#   public data, logging into sites, and any task that needs a real
+#   browser rather than raw HTTP.
+#
+#   Tools the agent will see (auto-prefixed by Hermes):
+#     - mcp_puppeteer_puppeteer_navigate
+#     - mcp_puppeteer_puppeteer_screenshot
+#     - mcp_puppeteer_puppeteer_click
+#     - mcp_puppeteer_puppeteer_fill
+#     - mcp_puppeteer_puppeteer_hover
+#     - mcp_puppeteer_puppeteer_select
+#     - mcp_puppeteer_puppeteer_evaluate
+#
+# Prerequisites:
+#   - Node.js 18+ installed (provides `npx`).
+#   - On first run npx will download the package AND a Chromium browser
+#     bundle (~170MB). Make sure you have disk space and network access.
+#   - On Linux servers, you may also need Chrome's runtime libs:
+#       sudo apt install -y ca-certificates fonts-liberation libasound2 \
+#         libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \
+#         libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 \
+#         libnspr4 libnss3 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
+#         libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 \
+#         libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils
+#   - The MCP Python SDK for Hermes itself:
+#       pip install mcp
+#
+# API keys:
+#   None. Browser traffic is initiated from your machine directly.
+#
+# ⚠️  STATUS NOTE (as of 2026):
+#   The original `@modelcontextprotocol/server-puppeteer` package is
+#   DEPRECATED and archived in the official MCP servers list, but it still
+#   installs and runs correctly for most use cases. If you hit bugs,
+#   consider swapping in the modern Microsoft-maintained alternative:
+#       command: "npx"
+#       args: ["-y", "@playwright/mcp"]
+#   which is the de facto replacement in 2026.
+#
+# Source:
+#   https://github.com/modelcontextprotocol/servers (src/puppeteer — archived)
+#   npm package: @modelcontextprotocol/server-puppeteer
+#
+# How to use:
+#   Copy the YAML block below and paste it under `mcp_servers:` in
+#   `~/.hermes/config.yaml`, indenting every line by 2 more spaces.
+#   See ../mcp/README.md for details.
+# =============================================================================
+
+puppeteer:
+  # The executable Hermes will spawn.
+  command: "npx"
+
+  # `-y` auto-confirms the npm install prompt on first run.
+  args:
+    - "-y"
+    - "@modelcontextprotocol/server-puppeteer"
+
+  # Optional: tell Puppeteer where to put its user-data dir (cookies,
+  # cache, login sessions). Useful for keeping logins across restarts.
+  # If you set this, also pass it through to the browser via the
+  # `puppeteer_navigate` tool's `launchOptions.args` at call time.
+  # env:
+  #   PUPPETEER_USER_DATA_DIR: "/home/YOU/.cache/puppeteer-mcp"
+
+  # Browser automation can be slow on first launch. Give it room.
+  timeout: 120
